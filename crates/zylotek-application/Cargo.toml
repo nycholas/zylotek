@@ -1,0 +1,12 @@
+[package]
+name = "zylotek-application"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+zylotek-domain = { workspace = true }
+zylotek-infrastructure = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }

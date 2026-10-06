@@ -1,0 +1,12 @@
+[package]
+name = "zylotek-sync"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = { workspace = true }
+futures = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+scraper = { workspace = true }
+anyhow = { workspace = true }

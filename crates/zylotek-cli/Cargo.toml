@@ -1,0 +1,11 @@
+[package]
+name = "zylotek-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+zylotek-infrastructure = { workspace = true }
+zylotek-sync = { workspace = true }
+log = { workspace = true }
+simple_logger = { workspace = true }
+clap = { workspace = true }
