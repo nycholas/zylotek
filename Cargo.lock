@@ -2462,6 +2462,8 @@ dependencies = [
  "indexmap",
  "inventory",
  "serde",
+ "serde_core",
+ "serde_json",
  "toasty-core",
  "toasty-driver-mysql",
  "toasty-driver-sqlite",
@@ -3242,4 +3244,5 @@ dependencies = [
  "reqwest",
  "scraper",
  "tokio",
+ "zylotek-domain",
 ]

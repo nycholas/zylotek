@@ -11,4 +11,7 @@ pub enum RepositoryError {
 
     #[error("repository operation failed")]
     OperationFailed,
+
+    #[error("stored data is invalid: {0}")]
+    InvalidData(String),
 }

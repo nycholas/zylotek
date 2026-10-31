@@ -2,9 +2,13 @@ use std::sync::Arc;
 
 use tokio::net::TcpListener;
 use zylotek_application::woods::{
-    create_wood::CreateWood, facade::WoodFacade, handlers::WoodEventHandler,
+    create_wood::CreateWood, delete_wood::DeleteWood, facade::WoodFacade, get_wood::GetWood,
+    handlers::WoodEventHandler, list_woods::ListWoods, update_wood::UpdateWood,
 };
-use zylotek_domain::woods::{events::WoodEvent, services::WoodCreationService};
+use zylotek_domain::woods::{
+    events::WoodEvent,
+    services::{WoodCreationService, WoodUpdateService},
+};
 use zylotek_infrastructure::{
     event_bus::tokio::{TokioEventPublisher, run_event_handler},
     persistence::{build_db, woods::repositories::PostgresWoodRepository},
@@ -26,13 +30,21 @@ async fn main() -> anyhow::Result<()> {
     let wood_event_publisher = Arc::new(TokioEventPublisher::<WoodEvent>::new(1024));
     let wood_event_handler = WoodEventHandler::new();
     let wood_repository = Arc::new(PostgresWoodRepository::new(db));
-    let wood_creation_service = WoodCreationService::new(wood_repository.clone());
+
     let create_wood = CreateWood::new(
         wood_event_publisher.clone(),
         wood_repository.clone(),
-        wood_creation_service,
+        WoodCreationService::new(wood_repository.clone()),
     );
-    let wood_facade = WoodFacade::new(create_wood);
+    let get_wood = GetWood::new(wood_repository.clone());
+    let list_woods = ListWoods::new(wood_repository.clone());
+    let update_wood = UpdateWood::new(
+        wood_event_publisher.clone(),
+        wood_repository.clone(),
+        WoodUpdateService::new(wood_repository.clone()),
+    );
+    let delete_wood = DeleteWood::new(wood_event_publisher.clone(), wood_repository.clone());
+    let wood_facade = WoodFacade::new(create_wood, get_wood, list_woods, update_wood, delete_wood);
 
     tokio::spawn(run_event_handler(
         wood_event_publisher.subscribe(),

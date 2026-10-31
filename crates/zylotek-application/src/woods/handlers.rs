@@ -19,11 +19,11 @@ impl Default for WoodEventHandler {
 impl EventHandler<WoodEvent> for WoodEventHandler {
     async fn handle(&self, event: WoodEvent) -> Result<(), EventHandlerError> {
         match event {
-            WoodEvent::WoodCreated { wood_id } => {
-                let id = wood_id.as_uuid().to_string();
-                log::info!("wood {id} was created");
-                Ok(())
-            }
+            WoodEvent::WoodCreated { wood_id } => log::info!("wood {wood_id} was created"),
+            WoodEvent::WoodUpdated { wood_id } => log::info!("wood {wood_id} was updated"),
+            WoodEvent::WoodDeleted { wood_id } => log::info!("wood {wood_id} was deleted"),
         }
+
+        Ok(())
     }
 }

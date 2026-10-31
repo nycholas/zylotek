@@ -1,4 +1,7 @@
-use crate::{errors::RepositoryError, woods::entities::Wood};
+use crate::{
+    errors::RepositoryError,
+    woods::entities::{Wood, WoodId},
+};
 
 #[async_trait::async_trait]
 pub trait WoodRepository: Send + Sync {
@@ -7,5 +10,16 @@ pub trait WoodRepository: Send + Sync {
         scientific_name: &str,
     ) -> Result<bool, RepositoryError>;
 
+    async fn find_by_id(&self, id: WoodId) -> Result<Option<Wood>, RepositoryError>;
+
+    /// Woods ordered by scientific name.
+    async fn list(&self, offset: usize, limit: usize) -> Result<Vec<Wood>, RepositoryError>;
+
+    async fn count(&self) -> Result<u64, RepositoryError>;
+
     async fn save(&self, wood: &Wood) -> Result<Wood, RepositoryError>;
+
+    async fn update(&self, wood: &Wood) -> Result<Wood, RepositoryError>;
+
+    async fn delete(&self, id: WoodId) -> Result<(), RepositoryError>;
 }

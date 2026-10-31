@@ -1,4 +1,5 @@
 use anyhow::{Context, Result, anyhow};
+use zylotek_domain::woods::value_objects::Measurement;
 
 pub(crate) fn parse_number(value: &str) -> Result<i64> {
     let value = value.trim();
@@ -43,6 +44,11 @@ pub(crate) fn optional_decimal(value: Option<&String>) -> Option<f64> {
     }
 
     parse_decimal(value).ok()
+}
+
+/// Parses an optional decimal cell into a domain measurement, rejecting out-of-range values.
+pub(crate) fn measurement<M: Measurement>(value: Option<&String>) -> Result<Option<M>> {
+    Ok(M::from_optional(optional_decimal(value))?)
 }
 
 pub(crate) fn normalize(value: &str) -> String {

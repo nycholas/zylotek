@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use zylotek_domain::{
-    errors::RepositoryError,
-    woods::{
-        entities::Wood,
-        events::WoodEvent,
-        repositories::WoodRepository,
-        services::{WoodCreationError, WoodCreationService},
-    },
+use zylotek_domain::woods::{
+    entities::Wood,
+    events::WoodEvent,
+    repositories::WoodRepository,
+    services::WoodCreationService,
+    value_objects::{ScientificName, WoodDetails, WoodName},
 };
-use zylotek_infrastructure::event_bus::{EventPublishError, EventPublisher};
+use zylotek_infrastructure::event_bus::EventPublisher;
+
+use crate::woods::errors::WoodUseCaseError;
 
 pub struct CreateWood {
     event_publisher: Arc<dyn EventPublisher<WoodEvent>>,
@@ -30,22 +30,25 @@ impl CreateWood {
         }
     }
 
-    pub async fn execute(&self, command: CreateWoodCommand) -> Result<Wood, CreateWoodError> {
+    pub async fn execute(&self, command: CreateWoodCommand) -> Result<Wood, WoodUseCaseError> {
+        let name = WoodName::new(command.name)?;
+        let scientific_name = ScientificName::new(command.scientific_name)?;
+
         let (wood, event) = self
             .wood_creation_service
-            .create(command.name, command.scientific_name)
-            .await
-            .map_err(CreateWoodError::Domain)?;
+            .create(name, scientific_name, command.details)
+            .await?;
 
-        self.wood_repository
+        let wood = self
+            .wood_repository
             .save(&wood)
             .await
-            .map_err(CreateWoodError::Persistence)?;
+            .map_err(WoodUseCaseError::Persistence)?;
 
         self.event_publisher
             .publish(event)
             .await
-            .map_err(CreateWoodError::Event)?;
+            .map_err(WoodUseCaseError::Event)?;
 
         Ok(wood)
     }
@@ -54,16 +57,5 @@ impl CreateWood {
 pub struct CreateWoodCommand {
     pub name: String,
     pub scientific_name: String,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum CreateWoodError {
-    #[error(transparent)]
-    Domain(#[from] WoodCreationError),
-
-    #[error("failed to persist wood")]
-    Persistence(#[source] RepositoryError),
-
-    #[error("failed to publish wood event")]
-    Event(#[source] EventPublishError),
+    pub details: WoodDetails,
 }

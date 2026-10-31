@@ -1,116 +1,21 @@
-use std::{collections::HashMap, vec};
+use std::collections::HashMap;
 
 use anyhow::{Result, anyhow};
 use scraper::ElementRef;
+use zylotek_domain::woods::value_objects::{
+    EquipmentFinishing, EquipmentFinishingResult, NailCrackBehavior, SurfaceFinishing,
+    Treatabilities, TreatabilityRating, Workabilities, WorkabilityDefect,
+    WorkabilityEquipmentSettings, WorkabilityRating,
+};
 
 use crate::parsers::{helpers, selectors};
 
-#[derive(Debug, Clone)]
-pub struct Workabilities {
-    pub equipment_finishing: EquipmentFinishing,
-    pub surface_finishing: SurfaceFinishing,
-    pub treatabilities: Treatabilities,
-}
-
-impl Workabilities {
-    pub(crate) fn parse(container: ElementRef<'_>) -> Result<Workabilities> {
-        Ok(Workabilities {
-            equipment_finishing: parse_table_equipment_finishing(container)?,
-            surface_finishing: parse_table_type_of_action(container)?,
-            treatabilities: parse_table_treatability_of_wood(container)?,
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SurfaceFinishing {
-    pub planer: WorkabilityRating,
-    pub sandpaper: WorkabilityRating,
-    pub vise: WorkabilityRating,
-    pub drill: WorkabilityRating,
-    pub nail_crack: NailCrackBehavior,
-}
-
-#[derive(Debug, Clone)]
-pub struct EquipmentFinishing {
-    pub molding_planer: EquipmentFinishingByResults,
-    pub narrow_belt_sander: EquipmentFinishingByResults,
-    pub lathe: EquipmentFinishingByResults,
-    pub drill_bit: EquipmentFinishingByResults,
-}
-
-#[derive(Debug, Clone)]
-pub struct EquipmentFinishingByResults {
-    pub number_of_samples: Option<i64>,
-    pub surface_finish: WorkabilityRating,
-    pub defect: WorkabilityDefect,
-    pub equipment_settings: WorkabilityEquipmentSettings,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WorkabilityRating {
-    NotApplicable,
-    Poor,
-    VeryPoor,
-    Fair,
-    Easy,
-    Good,
-    VeryGood,
-    Excellent,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WorkabilityDefect {
-    NotApplicable,
-    Fair,
-    FluffyAndCrushed,
-    FluffyAndRippedOff,
-    FluffyAndScratched,
-    FluffyAndRippedOffAndLifted,
-    FluffyAndCrushedAndLifted,
-    Fluffy,
-    CrushedAndRippedOff,
-    CrushedAndFluffyAndRippedOff,
-    Crushed,
-    RippedOff,
-    LiftedAndRippedOff,
-    Lifted,
-    Scratched,
-    Flawless,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WorkabilityEquipmentSettings {
-    NotApplicable,
-    NotSuitable,
-    Suitable,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum NailCrackBehavior {
-    NotApplicable,
-    DoesNotCrack,
-    DoesNotCrackExceptCorners,
-    Cracks,
-}
-
-#[derive(Debug, Clone)]
-pub struct Treatabilities {
-    pub heartwood: TreatabilityRating,
-    pub spawood: TreatabilityRating,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum TreatabilityRating {
-    NotApplicable,
-    Green,
-    Dry,
-    Hard,
-    ModeratelyHard,
-    VeryHard,
-    Easy,
-    ModeratelyEasy,
-    VeryEasy,
+pub(crate) fn parse(container: ElementRef<'_>) -> Result<Workabilities> {
+    Ok(Workabilities {
+        equipment_finishing: parse_table_equipment_finishing(container)?,
+        surface_finishing: parse_table_type_of_action(container)?,
+        treatabilities: parse_table_treatability_of_wood(container)?,
+    })
 }
 
 fn parse_workability_defect(value: &str) -> Result<WorkabilityDefect> {
@@ -173,8 +78,8 @@ fn parse_nail_crack(value: &str) -> Result<NailCrackBehavior> {
 fn parse_treatability(value: &str) -> Result<TreatabilityRating> {
     match helpers::normalize(value).to_lowercase().as_str() {
         "-" | "" => Ok(TreatabilityRating::NotApplicable),
-        "verde" => Ok(TreatabilityRating::Dry),
-        "seca" => Ok(TreatabilityRating::Green),
+        "verde" => Ok(TreatabilityRating::Green),
+        "seca" => Ok(TreatabilityRating::Dry),
         "muito difícil" => Ok(TreatabilityRating::VeryHard),
         "moderadamente difícil" => Ok(TreatabilityRating::ModeratelyHard),
         "difícil" => Ok(TreatabilityRating::Hard),
@@ -218,61 +123,38 @@ fn parse_table_equipment_finishing(container: ElementRef<'_>) -> Result<Equipmen
 
     let number_of_samples_row = table_rows
         .remove(html::EQUIPMENT_FINISH_NUMBER_OF_SAMPLES_TABLE_HEADER_ROW)
-        .unwrap_or(vec!["".to_string(); 4]);
+        .unwrap_or_default();
 
     let surface_finishing_row = table_rows
         .remove(html::EQUIPMENT_FINISH_SURFICE_FINISHING_TABLE_HEADER_ROW)
-        .unwrap_or(vec!["".to_string(); 4]);
+        .unwrap_or_default();
 
     let defect_row = table_rows
         .remove(html::EQUIPMENT_FINISH_DEFECT_TABLE_HEADER_ROW)
-        .unwrap_or(vec!["".to_string(); 4]);
+        .unwrap_or_default();
 
     let equipment_settings_row = table_rows
         .remove(html::EQUIPMENT_FINISH_EQUIPMENT_SETTINGS_TABLE_HEADER_ROW)
-        .unwrap_or(vec!["".to_string(); 4]);
+        .unwrap_or_default();
+
+    // Columns, in order: molding planer, narrow belt sander, lathe, drill bit.
+    let result = |column: usize| -> Result<EquipmentFinishingResult> {
+        let cell = |row: &[String]| row.get(column).cloned().unwrap_or_default();
+
+        Ok(EquipmentFinishingResult {
+            number_of_samples: helpers::optional_number(number_of_samples_row.get(column))
+                .and_then(|value| u32::try_from(value).ok()),
+            surface_finish: parse_workability_rating(&cell(&surface_finishing_row))?,
+            defect: parse_workability_defect(&cell(&defect_row))?,
+            equipment_settings: parse_workability_equipment(&cell(&equipment_settings_row))?,
+        })
+    };
 
     Ok(EquipmentFinishing {
-        molding_planer: EquipmentFinishingByResults {
-            number_of_samples: helpers::optional_number(number_of_samples_row.first()),
-            surface_finish: parse_workability_rating(
-                surface_finishing_row.first().unwrap_or(&String::new()),
-            )?,
-            defect: parse_workability_defect(defect_row.first().unwrap_or(&String::new()))?,
-            equipment_settings: parse_workability_equipment(
-                equipment_settings_row.first().unwrap_or(&String::new()),
-            )?,
-        },
-        narrow_belt_sander: EquipmentFinishingByResults {
-            number_of_samples: helpers::optional_number(number_of_samples_row.get(1)),
-            surface_finish: parse_workability_rating(
-                surface_finishing_row.get(1).unwrap_or(&String::new()),
-            )?,
-            defect: parse_workability_defect(defect_row.get(1).unwrap_or(&String::new()))?,
-            equipment_settings: parse_workability_equipment(
-                equipment_settings_row.get(1).unwrap_or(&String::new()),
-            )?,
-        },
-        lathe: EquipmentFinishingByResults {
-            number_of_samples: helpers::optional_number(number_of_samples_row.get(2)),
-            surface_finish: parse_workability_rating(
-                surface_finishing_row.get(2).unwrap_or(&String::new()),
-            )?,
-            defect: parse_workability_defect(defect_row.get(2).unwrap_or(&String::new()))?,
-            equipment_settings: parse_workability_equipment(
-                equipment_settings_row.get(2).unwrap_or(&String::new()),
-            )?,
-        },
-        drill_bit: EquipmentFinishingByResults {
-            number_of_samples: helpers::optional_number(number_of_samples_row.get(3)),
-            surface_finish: parse_workability_rating(
-                surface_finishing_row.get(3).unwrap_or(&String::new()),
-            )?,
-            defect: parse_workability_defect(defect_row.get(3).unwrap_or(&String::new()))?,
-            equipment_settings: parse_workability_equipment(
-                equipment_settings_row.get(3).unwrap_or(&String::new()),
-            )?,
-        },
+        molding_planer: result(0)?,
+        narrow_belt_sander: result(1)?,
+        lathe: result(2)?,
+        drill_bit: result(3)?,
     })
 }
 
@@ -305,7 +187,7 @@ fn parse_table_treatability_of_wood(container: ElementRef<'_>) -> Result<Treatab
 
     Ok(Treatabilities {
         heartwood: parse_treatability(&treatability_of_wood_row[0])?,
-        spawood: parse_treatability(&treatability_of_wood_row[1])?,
+        sapwood: parse_treatability(&treatability_of_wood_row[1])?,
     })
 }
 

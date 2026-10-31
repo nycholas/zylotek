@@ -1,18 +1,11 @@
 mod parsers;
 
-use std::{
-    collections::HashMap,
-    hash::{DefaultHasher, Hash, Hasher},
-};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use anyhow::{Context, Result};
 use scraper::{Html, Selector};
 use tokio::{self, task::JoinHandle};
-
-use crate::parsers::{
-    mechanical_properties::MechanicalProperties, physical_properties::PhysicalProperties,
-    workabilities::Workabilities,
-};
+use zylotek_domain::woods::value_objects::{ScientificName, WoodDetails, WoodName};
 
 const TOTAL_PAGE_NUMBER: usize = 13;
 
@@ -58,7 +51,7 @@ impl SyncronizerRunner {
 
             handles.push(rt.spawn(async move {
                 let wood_tasks = fetch_woods(&client, &next_page).await?;
-                let woods: Vec<Wood> = futures::future::try_join_all(wood_tasks)
+                let woods: Vec<ScrapedWood> = futures::future::try_join_all(wood_tasks)
                     .await?
                     .into_iter()
                     .collect::<Result<Vec<_>, _>>()?;
@@ -103,7 +96,7 @@ impl WoodFetcher {
         }
     }
 
-    async fn fetch(&self, client: &reqwest::Client) -> Result<Wood> {
+    async fn fetch(&self, client: &reqwest::Client) -> Result<ScrapedWood> {
         fetch_wood(client, &self.source_page_link).await
     }
 
@@ -114,37 +107,15 @@ impl WoodFetcher {
     }
 }
 
+/// A wood as scraped from its LPF species page, expressed in domain terms.
 #[derive(Debug, Clone)]
-pub struct Wood {
-    pub id: u64,
-    pub name: String,
-    pub image_url: String,
-    pub scientific_name: String,
-    pub family: String,
-    pub collection_location: String,
-    pub source_page_link: String,
-    pub common_names: Option<Vec<String>>,
-    pub tree: Option<HashMap<String, String>>,
-    pub general_characteristics: Option<HashMap<String, String>>,
-    pub end_uses: Option<String>,
-    pub klin_drying: Option<HashMap<String, String>>,
-    pub preservation: Option<String>,
-    pub workability: Option<String>,
-    pub klin_drying_days: Option<f64>,
-    pub heartwood_color_classification: Option<String>,
-    pub tree_image_url: Option<String>,
-    pub log_image_url: Option<String>,
-    pub bark_image_url: Option<String>,
-    pub tangencial_cut_image_url: Option<String>,
-    pub cross_section_image_url: Option<String>,
-    pub radial_cut_image_url: Option<String>,
-    pub wood_image_url: Option<String>,
-    pub workabilities: Workabilities,
-    pub physical_properties: PhysicalProperties,
-    pub mechanical_properties: MechanicalProperties,
+pub struct ScrapedWood {
+    pub name: WoodName,
+    pub scientific_name: ScientificName,
+    pub details: WoodDetails,
 }
 
-async fn fetch_wood(client: &reqwest::Client, url: &str) -> Result<Wood> {
+async fn fetch_wood(client: &reqwest::Client, url: &str) -> Result<ScrapedWood> {
     log::info!(" + Fetching wood {url}");
     let response = client
         .get(url)
@@ -157,7 +128,7 @@ async fn fetch_wood(client: &reqwest::Client, url: &str) -> Result<Wood> {
     parsers::parse_wood(&body, url).with_context(|| format!("failed to parse the page: {}", url))
 }
 
-type WoodFetcherTask = JoinHandle<Result<Wood>>;
+type WoodFetcherTask = JoinHandle<Result<ScrapedWood>>;
 
 async fn fetch_woods(client: &reqwest::Client, url: &str) -> Result<Vec<WoodFetcherTask>> {
     log::info!("Fetching page: {url}");
