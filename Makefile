@@ -5,7 +5,7 @@
 # Setup
 # =============================================================================
 
-setup:
+setup: prek-install
 	cargo install --locked prek sccache cargo-llvm-cov cargo-fuzz cargo-bench \
 	cargo-audit cargo-outdated
 

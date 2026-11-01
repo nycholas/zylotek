@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use axum::Router;
+use axum::{Router, routing::get};
 use tower_http::{
     compression::CompressionLayer,
     cors::{Any, CorsLayer},
@@ -19,6 +19,7 @@ pub fn router(state: AppState) -> Router {
 
     Router::new()
         .nest("/api/v1/woods", woods::routes::router())
+        .route("/health", get(health_check_handler))
         .with_state(state)
         .fallback(not_found_handler)
         .layer(axum::middleware::from_fn(
@@ -32,6 +33,10 @@ pub fn router(state: AppState) -> Router {
         ))
         .layer(RequestBodyLimitLayer::new(1024 * 1024)) // 1MB
         .layer(cors)
+}
+
+async fn health_check_handler() -> &'static str {
+    "OK"
 }
 
 async fn not_found_handler() -> (axum::http::StatusCode, &'static str) {

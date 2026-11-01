@@ -27,6 +27,7 @@ async fn run() -> anyhow::Result<()> {
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
+        .json()
         .init();
 
     let db = build_db("sqlite::memory:").await?;
@@ -62,7 +63,7 @@ async fn run() -> anyhow::Result<()> {
     let app = router(state);
     let listener = TcpListener::bind("0.0.0.0:8080").await?;
 
-    log::info!("zylotek-api running...");
+    print_banner();
     axum::serve(listener, app).await?;
 
     Ok(())
@@ -78,4 +79,19 @@ pub fn cli(args: Vec<&str>) -> Result<(), ApiError> {
     let _ = args.insert_mut(0, String::from("--"));
 
     rt.block_on(run()).map_err(ApiError::Internal)
+}
+
+fn print_banner() {
+    let banner = r#"
+            _       _       _                  _
+           | |     | |     | |                (_)
+  _____   _| | ___ | |_ ___| | __   __ _ _ __  _
+ |_  / | | | |/ _ \| __/ _ \ |/ /  / _` | '_ \| |
+  / /| |_| | | (_) | ||  __/   <  | (_| | |_) | |
+ /___|\__, |_|\___/ \__\___|_|\_\  \__,_| .__/|_|
+       __/ |                            | |
+      |___/                             |_|
+    "#;
+    println!("{}", banner);
+    println!("Version: {}", env!("CARGO_PKG_VERSION"));
 }
