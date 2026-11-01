@@ -25,7 +25,7 @@ cargo run -p zylotek-cli -- db setup
 cargo run -p zylotek-cli -- db migrate      # or: make migrate
 
 # Run the HTTP API on 0.0.0.0:8080
-cargo run -p zylotek-api
+cargo run -p zylotek-cli -- api run
 ```
 
 ### API

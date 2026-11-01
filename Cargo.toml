@@ -20,11 +20,11 @@ members = [
 [workspace.dependencies]
 zylotek-domain = { path = "crates/zylotek-domain" }
 zylotek-cli = { path = "crates/zylotek-cli" }
+zylotek-api = { path = "crates/zylotek-api" }
 zylotek-sync = { path = "crates/zylotek-sync" }
 zylotek-application = { path = "crates/zylotek-application" }
 zylotek-infrastructure = { path = "crates/zylotek-infrastructure" }
 log = "0.4.34"
-simple_logger = "5.2.0"
 clap = { version = "4.6.7", features = ["derive"] }
 futures = "0.3.34"
 trait-variant = "0.1.3"
@@ -37,11 +37,21 @@ scraper = { version = "0.27.0" }
 anyhow = "1.0.104"
 thiserror = "2.0.21"
 csv = "1.4.0"
-uuid = { version = "1.27.0", features = ["v4"] }
+uuid = { version = "1.27.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
-axum = "0.8.9"
-tracing = "0.1.44"
-tracing-subscriber = "0.3.23"
+serde_json = "1.0"
+axum = { version = "0.8.9", features = ["macros"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = [
+    "cors",
+    "trace",
+    "compression-gzip",
+    "timeout",
+    "limit",
+] }
+tracing = { version = "0.1.44", features = ["log"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "json", "time"] }
 toasty = { version = "0.11.0", features = ["sqlite", "serde"] }
 toasty-cli = { version = "0.11.0" }
 toasty-driver-sqlite = "0.11.0"

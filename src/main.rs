@@ -1,3 +1,6 @@
 fn main() {
-    println!("Hello, world!");
+    eprintln!("The zylotek binary has moved to the zylotek-cli crate.");
+    eprintln!("Build with: cargo build -p zylotek-cli");
+    eprintln!("Or run with: cargo run -p zylotek-cli -- api run");
+    std::process::exit(1);
 }

@@ -92,11 +92,9 @@ impl From<WoodUseCaseError> for ApiError {
             WoodUseCaseError::Domain(WoodError::Repository(error)) => {
                 ApiError::Internal(anyhow::Error::new(error))
             }
-
             WoodUseCaseError::Domain(WoodError::InvalidId(_)) => {
                 ApiError::BadRequest(error.to_string())
             }
-
             WoodUseCaseError::Domain(_) => ApiError::UnprocessableEntity(error.to_string()),
 
             WoodUseCaseError::Persistence(_) | WoodUseCaseError::Event(_) => {

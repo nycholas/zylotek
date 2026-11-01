@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use crate::commands::{db::DbCommand, sync::SyncCommand};
+use crate::commands::{api::ApiCommand, db::DbCommand, sync::SyncCommand};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -16,4 +16,7 @@ pub enum Commands {
 
     #[command(subcommand)]
     Sync(SyncCommand),
+
+    #[command(subcommand)]
+    Api(ApiCommand),
 }

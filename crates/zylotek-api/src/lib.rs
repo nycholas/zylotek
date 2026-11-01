@@ -14,16 +14,20 @@ use zylotek_infrastructure::{
     persistence::{build_db, woods::repositories::PostgresWoodRepository},
 };
 
-use crate::{router::router, state::AppState};
+use crate::{errors::ApiError, router::router, state::AppState};
 
 pub mod errors;
+pub mod middleware;
 pub mod router;
 pub mod state;
 pub mod woods;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+async fn run() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+        )
+        .init();
 
     let db = build_db("sqlite::memory:").await?;
 
@@ -62,4 +66,16 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+pub fn cli(args: Vec<&str>) -> Result<(), ApiError> {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| ApiError::Internal(anyhow::Error::new(e)))?;
+
+    let mut args: Vec<String> = args.into_iter().map(|str| str.to_string()).collect();
+    let _ = args.insert_mut(0, String::from("--"));
+
+    rt.block_on(run()).map_err(ApiError::Internal)
 }

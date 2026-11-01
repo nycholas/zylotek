@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 zylotek-infrastructure = { workspace = true }
+zylotek-api = { workspace = true }
 zylotek-sync = { workspace = true }
 log = { workspace = true }
-simple_logger = { workspace = true }
 clap = { workspace = true }
