@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, signal};
 use zylotek_application::woods::{
     create_wood::CreateWood, delete_wood::DeleteWood, facade::WoodFacade, get_wood::GetWood,
     handlers::WoodEventHandler, list_woods::ListWoods, update_wood::UpdateWood,
@@ -64,7 +64,10 @@ async fn run() -> anyhow::Result<()> {
     let listener = TcpListener::bind("0.0.0.0:8080").await?;
 
     print_banner();
-    axum::serve(listener, app).await?;
+
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
     Ok(())
 }
@@ -94,4 +97,28 @@ fn print_banner() {
     "#;
     println!("{}", banner);
     println!("Version: {}", env!("CARGO_PKG_VERSION"));
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
 }
